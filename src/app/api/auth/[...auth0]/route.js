@@ -45,11 +45,16 @@ export async function GET(request, context) {
     const code = request.nextUrl.searchParams.get('code')
     const state = request.nextUrl.searchParams.get('state')
     
+    console.log('Auth0 callback received:', { code: code ? 'present' : 'missing', state })
+    
     if (!code) {
+      console.error('Missing authorization code in callback')
       return NextResponse.redirect(`${baseUrl}?error=missing_code`)
     }
 
     try {
+      console.log('Attempting token exchange with Auth0...')
+      
       // Exchange code for tokens
       const tokenResponse = await fetch(`${domain}/oauth/token`, {
         method: 'POST',
@@ -66,11 +71,13 @@ export async function GET(request, context) {
       })
 
       if (!tokenResponse.ok) {
-        console.error('Token exchange failed:', await tokenResponse.text())
-        return NextResponse.redirect(`${baseUrl}?error=token_exchange_failed`)
+        const errorText = await tokenResponse.text()
+        console.error('Token exchange failed:', tokenResponse.status, errorText)
+        return NextResponse.redirect(`${baseUrl}?error=token_exchange_failed&details=${encodeURIComponent(errorText)}`)
       }
 
       const tokens = await tokenResponse.json()
+      console.log('Token exchange successful')
       
       // Get user info
       const userResponse = await fetch(`${domain}/userinfo`, {
@@ -80,23 +87,27 @@ export async function GET(request, context) {
       })
 
       if (!userResponse.ok) {
-        console.error('User info fetch failed:', await userResponse.text())
-        return NextResponse.redirect(`${baseUrl}?error=user_info_failed`)
+        const errorText = await userResponse.text()
+        console.error('User info fetch failed:', userResponse.status, errorText)
+        return NextResponse.redirect(`${baseUrl}?error=user_info_failed&details=${encodeURIComponent(errorText)}`)
       }
 
       const user = await userResponse.json()
+      console.log('User info retrieved:', { email: user.email, sub: user.sub })
       
       // Store user and tokens in cookies
       const response = NextResponse.redirect(baseUrl)
       response.cookies.set('auth0_access_token', tokens.access_token, {
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === 'production',
         maxAge: 60 * 60 * 24 * 7, // 7 days
+        sameSite: 'lax'
       })
       response.cookies.set('auth0_user', JSON.stringify(user), {
         httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === 'production',
         maxAge: 60 * 60 * 24 * 7, // 7 days
+        sameSite: 'lax'
       })
       
       // Store the role from state if available
@@ -104,10 +115,12 @@ export async function GET(request, context) {
         try {
           const stateData = JSON.parse(decodeURIComponent(state))
           if (stateData.role) {
+            console.log('Setting user role:', stateData.role)
             response.cookies.set('user_role', stateData.role, {
               httpOnly: true,
-              secure: true,
+              secure: process.env.NODE_ENV === 'production',
               maxAge: 60 * 60 * 24 * 7, // 7 days
+              sameSite: 'lax'
             })
           }
         } catch (e) {
@@ -115,35 +128,68 @@ export async function GET(request, context) {
         }
       }
       
+      console.log('Callback completed successfully, redirecting to home')
       return response
     } catch (error) {
       console.error('Callback error:', error)
-      return NextResponse.redirect(`${baseUrl}?error=callback_failed`)
+      return NextResponse.redirect(`${baseUrl}?error=callback_failed&details=${encodeURIComponent(error.message)}`)
     }
   }
   
   if (auth0Route === 'me') {
     // Return user info from cookies
-    const cookieStore = cookies()
-    const userCookie = cookieStore.get('auth0_user')
-    const roleCookie = cookieStore.get('user_role')
-    
-    if (!userCookie) {
-      return NextResponse.json(null)
-    }
-    
     try {
+      const cookieStore = cookies()
+      const userCookie = cookieStore.get('auth0_user')
+      const roleCookie = cookieStore.get('user_role')
+      
+      console.log('Me endpoint called - cookies:', { 
+        hasUser: !!userCookie, 
+        hasRole: !!roleCookie,
+        role: roleCookie?.value 
+      })
+      
+      if (!userCookie) {
+        return NextResponse.json(null)
+      }
+      
       const user = JSON.parse(userCookie.value)
       const role = roleCookie?.value || 'CARE_WORKER'
       
-      return NextResponse.json({
+      const userWithRole = {
         ...user,
         role
-      })
+      }
+      
+      console.log('Returning user:', { email: user.email, role })
+      return NextResponse.json(userWithRole)
     } catch (error) {
       console.error('Failed to parse user cookie:', error)
       return NextResponse.json(null)
     }
+  }
+  
+  if (auth0Route === 'debug') {
+    // Debug endpoint to see what's happening
+    const cookieStore = cookies()
+    const userCookie = cookieStore.get('auth0_user')
+    const roleCookie = cookieStore.get('user_role')
+    const tokenCookie = cookieStore.get('auth0_access_token')
+    
+    return NextResponse.json({
+      environment: process.env.NODE_ENV,
+      baseUrl,
+      domain,
+      clientId,
+      hasClientSecret: !!clientSecret,
+      cookies: {
+        hasUser: !!userCookie,
+        hasRole: !!roleCookie,
+        hasToken: !!tokenCookie,
+        role: roleCookie?.value,
+        userEmail: userCookie ? JSON.parse(userCookie.value).email : null
+      }
+    })
   }
   
   return NextResponse.json({ error: 'Not found' }, { status: 404 })

@@ -208,7 +208,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (state.currentLocation && state.organization) {
       checkPerimeter()
     }
-  }, [state.currentLocation, state.organization])
+  }, [state.currentLocation, state.organization, checkPerimeter])
 
   return (
     <AppContext.Provider value={{ state, dispatch, getCurrentLocation, checkPerimeter, logout }}>

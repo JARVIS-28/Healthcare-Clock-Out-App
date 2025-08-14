@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
 import React, { createContext, useContext, useReducer, useEffect } from 'react'
@@ -98,11 +96,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isLoading && auth0User) {
       // Get role from Auth0 user or fallback to localStorage
-      let userRole = (auth0User.role as 'CARE_WORKER' | 'MANAGER') || 'CARE_WORKER'
+      let userRole: 'CARE_WORKER' | 'MANAGER' = 'CARE_WORKER'
       
-      // Fallback to localStorage if no role in session
-      if (!auth0User.role) {
-        const pendingRole = localStorage.getItem('pendingUserRole') as 'CARE_WORKER' | 'MANAGER'
+      if ((auth0User as unknown as { role?: string }).role) {
+        userRole = (auth0User as unknown as { role: 'CARE_WORKER' | 'MANAGER' }).role
+      } else {
+        // Fallback to localStorage if no role in session
+        const pendingRole = localStorage.getItem('pendingUserRole') as 'CARE_WORKER' | 'MANAGER' | null
         if (pendingRole) {
           userRole = pendingRole
           localStorage.removeItem('pendingUserRole') // Clean up

@@ -140,8 +140,8 @@ interface AuthLoginProps {
 
 export function AuthLogin({ role, onBack }: AuthLoginProps) {
   const handleAuth0Login = (provider?: string) => {
-    // Create the login URL with role in state
-    const baseUrl = '/api/auth/login'
+    // Create the login URL with role in state and connection
+    let loginUrl = '/api/auth/login'
     const params = new URLSearchParams()
     
     if (provider === 'google') {
@@ -151,7 +151,10 @@ export function AuthLogin({ role, onBack }: AuthLoginProps) {
     // Add role as state parameter
     params.append('state', JSON.stringify({ role }))
     
-    const loginUrl = `${baseUrl}?${params.toString()}`
+    if (params.toString()) {
+      loginUrl += '?' + params.toString()
+    }
+    
     window.location.href = loginUrl
   }
 

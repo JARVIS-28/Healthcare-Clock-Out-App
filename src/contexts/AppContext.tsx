@@ -3,6 +3,7 @@
 'use client'
 
 import React, { createContext, useContext, useReducer, useEffect } from 'react'
+import { useUser } from '@auth0/nextjs-auth0/client'
 
 interface User {
   id: string
@@ -91,35 +92,24 @@ const AppContext = createContext<AppContextType | undefined>(undefined)
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState)
+  const { user: auth0User, isLoading } = useUser()
 
-  // Function to fetch user from Auth0 API
-  const fetchAuth0User = async () => {
-    try {
-      const response = await fetch('/api/auth/me')
-      if (response.ok) {
-        const auth0User = await response.json()
-        if (auth0User) {
-          // Create user object from Auth0 data
-          const user: User = {
-            id: auth0User.sub || auth0User.id,
-            auth0Id: auth0User.sub,
-            email: auth0User.email,
-            name: auth0User.name,
-            role: auth0User.role || 'CARE_WORKER', // Role comes from cookie now
-            isActive: true
-          }
-          dispatch({ type: 'SET_USER', payload: user })
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching Auth0 user:', error)
-    }
-  }
-
-  // Check for authenticated user on mount
+  // Effect to sync Auth0 user with app state
   useEffect(() => {
-    fetchAuth0User()
-  }, [])
+    if (!isLoading && auth0User) {
+      const user: User = {
+        id: auth0User.sub || '',
+        auth0Id: auth0User.sub || '',
+        email: auth0User.email || '',
+        name: auth0User.name || undefined,
+        role: (auth0User.role as 'CARE_WORKER' | 'MANAGER') || 'CARE_WORKER',
+        isActive: true
+      }
+      dispatch({ type: 'SET_USER', payload: user })
+    } else if (!isLoading && !auth0User) {
+      dispatch({ type: 'SET_USER', payload: null })
+    }
+  }, [auth0User, isLoading])
 
   // Function to get current location
   const getCurrentLocation = async () => {

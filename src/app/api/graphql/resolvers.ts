@@ -20,8 +20,7 @@ interface GraphQLArgs {
 // Define enums locally to match Prisma schema
 const UserRole = {
   CARE_WORKER: 'CARE_WORKER',
-  MANAGER: 'MANAGER',
-  ADMIN: 'ADMIN'
+  MANAGER: 'MANAGER'
 } as const
 
 const ClockStatus = {
@@ -400,7 +399,7 @@ export const resolvers = {
         where: { auth0Id: user.sub }
       })
 
-      if (!currentUser || (currentUser.role !== 'MANAGER' && currentUser.role !== 'ADMIN')) {
+      if (!currentUser || currentUser.role !== 'MANAGER') {
         throw new GraphQLError('Insufficient permissions')
       }
 

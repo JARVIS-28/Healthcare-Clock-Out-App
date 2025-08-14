@@ -3,7 +3,6 @@
 'use client'
 
 import React, { createContext, useContext, useReducer, useEffect } from 'react'
-// import { useUser } from '@auth0/nextjs-auth0/client' // Commented for now
 
 interface User {
   id: string
@@ -85,13 +84,44 @@ interface AppContextType {
   dispatch: React.Dispatch<AppAction>
   getCurrentLocation: () => Promise<void>
   checkPerimeter: () => Promise<void>
+  logout: () => void
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState)
-  // const { user: auth0User } = useUser() // Using JS route for Auth0 instead
+
+  // Function to fetch user from Auth0 API
+  const fetchAuth0User = async () => {
+    try {
+      const response = await fetch('/api/auth/me')
+      if (response.ok) {
+        const auth0User = await response.json()
+        if (auth0User) {
+          // Create user object from Auth0 data
+          const user: User = {
+            id: auth0User.sub || auth0User.id,
+            auth0Id: auth0User.sub,
+            email: auth0User.email,
+            name: auth0User.name,
+            role: localStorage.getItem('pendingUserRole') as 'CARE_WORKER' | 'MANAGER' || 'CARE_WORKER',
+            isActive: true
+          }
+          dispatch({ type: 'SET_USER', payload: user })
+          // Clear the pending role
+          localStorage.removeItem('pendingUserRole')
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching Auth0 user:', error)
+    }
+  }
+
+  // Check for authenticated user on mount
+  useEffect(() => {
+    fetchAuth0User()
+  }, [])
 
   // Function to get current location
   const getCurrentLocation = async () => {
@@ -150,6 +180,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Function to logout user
+  const logout = () => {
+    dispatch({ type: 'SET_USER', payload: null })
+    dispatch({ type: 'SET_ORGANIZATION', payload: null })
+    dispatch({ type: 'SET_CLOCK_ENTRIES', payload: [] })
+    window.location.href = '/api/auth/logout'
+  }
+
   // Helper function to calculate distance
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
     const R = 6371 // Radius of the Earth in kilometers
@@ -171,7 +209,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [state.currentLocation, state.organization])
 
   return (
-    <AppContext.Provider value={{ state, dispatch, getCurrentLocation, checkPerimeter }}>
+    <AppContext.Provider value={{ state, dispatch, getCurrentLocation, checkPerimeter, logout }}>
       {children}
     </AppContext.Provider>
   )

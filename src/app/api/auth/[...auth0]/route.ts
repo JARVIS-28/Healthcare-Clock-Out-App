@@ -1,20 +1,16 @@
-import { handleAuth, handleLogin, handleCallback } from '@auth0/nextjs-auth0'
+import { handleAuth, handleCallback } from '@auth0/nextjs-auth0'
 
 export const GET = handleAuth({
-  login: handleLogin({
-    authorizationParams: {
-      scope: 'openid profile email'
-    }
-  }),
   callback: handleCallback({
-    afterCallback: async (req, res, session) => {
+    afterCallback: async (req: any, res: any, session: any) => {
       if (!session?.user) {
         return session
       }
       
-      // Try to get role from state parameter
-      const url = new URL(req.url)
+      // Get the state parameter from the URL
+      const url = new URL(req.url || '')
       const state = url.searchParams.get('state')
+      
       let userRole = 'CARE_WORKER'
       
       if (state) {

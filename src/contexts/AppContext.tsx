@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useReducer, useEffect } from 'react'
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react'
 import { useUser } from '@auth0/nextjs-auth0/client'
 
 interface User {
@@ -161,7 +161,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }
 
   // Function to check if current location is within perimeter
-  const checkPerimeter = async () => {
+  const checkPerimeter = useCallback(async () => {
     if (!state.currentLocation || !state.organization) {
       return
     }
@@ -180,7 +180,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Error checking perimeter:', error)
     }
-  }
+  }, [state.currentLocation, state.organization])
 
   // Function to logout user
   const logout = () => {

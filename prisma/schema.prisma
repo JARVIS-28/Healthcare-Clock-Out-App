@@ -1,0 +1,110 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  CARE_WORKER
+  MANAGER
+}
+
+enum ClockStatus {
+  CLOCKED_IN
+  CLOCKED_OUT
+}
+
+model User {
+  id            String     @id @default(cuid())
+  auth0Id       String     @unique
+  email         String     @unique
+  name          String?
+  role          UserRole   @default(CARE_WORKER)
+  isActive      Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  // Clock entries for this user
+  clockEntries  ClockEntry[]
+  
+  // Organization relationship
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  
+  @@map("users")
+}
+
+model Organization {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  
+  // Location perimeter settings
+  centerLat     Float
+  centerLng     Float
+  radiusKm      Float    @default(2.0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Users in this organization
+  users         User[]
+  clockEntries  ClockEntry[]
+  
+  @@map("organizations")
+}
+
+model ClockEntry {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  
+  status        ClockStatus
+  timestamp     DateTime    @default(now())
+  
+  // Location data
+  latitude      Float
+  longitude     Float
+  locationName  String?
+  
+  // Optional notes
+  note          String?
+  
+  // Metadata
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  @@map("clock_entries")
+}
+
+model AnalyticsSummary {
+  id                String   @id @default(cuid())
+  organizationId    String
+  date              DateTime @db.Date
+  
+  // Daily metrics
+  totalUsers        Int      @default(0)
+  totalClockIns     Int      @default(0)
+  totalClockOuts    Int      @default(0)
+  avgHoursWorked    Float    @default(0)
+  totalHoursWorked  Float    @default(0)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@unique([organizationId, date])
+  @@map("analytics_summaries")
+}

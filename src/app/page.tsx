@@ -1,103 +1,183 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import { useState, useEffect } from 'react'
+import { Layout, notification } from 'antd'
+import { ClockCircleOutlined } from '@ant-design/icons'
+import { LoginSelector, AuthLogin } from '@/components/auth/LoginComponents'
+import { ManagerDashboard } from '@/components/dashboard/ManagerDashboard'
+import { CareWorkerDashboard } from '@/components/dashboard/CareWorkerDashboard'
+
+const { Content } = Layout
+
+type AppState = 'role-selection' | 'auth-login' | 'dashboard'
+type UserRole = 'MANAGER' | 'CARE_WORKER'
+
+export default function HomePage() {
+  const [appState, setAppState] = useState<AppState>('role-selection')
+  const [selectedRole, setSelectedRole] = useState<UserRole | null>(null)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  // Check if user is returning from Auth0 callback
+  useEffect(() => {
+    // In real implementation, this would check Auth0 session
+    // For demo, we'll check URL parameters
+    const urlParams = new URLSearchParams(window.location.search)
+    const code = urlParams.get('code')
+    const state = urlParams.get('state')
+    
+    if (code && state) {
+      try {
+        const stateData = JSON.parse(decodeURIComponent(state))
+        if (stateData.role) {
+          setSelectedRole(stateData.role)
+          setIsLoggedIn(true)
+          setAppState('dashboard')
+          notification.success({
+            message: 'Login Successful',
+            description: `Welcome to Healthcare Clock App as ${stateData.role.toLowerCase().replace('_', ' ')}!`,
+          })
+          // Clean URL
+          window.history.replaceState({}, document.title, window.location.pathname)
+        }
+      } catch (error) {
+        console.error('Error parsing state:', error)
+      }
+    }
+  }, [])
+
+  const handleRoleSelect = (role: UserRole) => {
+    setSelectedRole(role)
+    setAppState('auth-login')
+  }
+
+  const handleBackToRoleSelection = () => {
+    setAppState('role-selection')
+    setSelectedRole(null)
+  }
+
+  const handleLogout = () => {
+    setIsLoggedIn(false)
+    setSelectedRole(null)
+    setAppState('role-selection')
+    notification.info({
+      message: 'Logged Out',
+      description: 'You have been logged out successfully.',
+    })
+  }
+
+  // Mock login for demo purposes (bypass Auth0 for testing)
+  const handleMockLogin = (role: UserRole) => {
+    setSelectedRole(role)
+    setIsLoggedIn(true)
+    setAppState('dashboard')
+    notification.success({
+      message: 'Demo Login Successful',
+      description: `Welcome to Healthcare Clock App as ${role.toLowerCase().replace('_', ' ')}!`,
+    })
+  }
+
+  if (appState === 'dashboard' && isLoggedIn && selectedRole) {
+    if (selectedRole === 'MANAGER') {
+      return <ManagerDashboard onLogout={handleLogout} />
+    } else {
+      return <CareWorkerDashboard onLogout={handleLogout} userRole="CARE_WORKER" />
+    }
+  }
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <Layout style={{ 
+      minHeight: '100vh', 
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
+    }}>
+      <Content style={{ 
+        padding: '50px 24px', 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        flexDirection: 'column'
+      }}>
+        <div style={{ 
+          textAlign: 'center', 
+          marginBottom: 40,
+          color: 'white'
+        }}>
+          <ClockCircleOutlined style={{ fontSize: 64, marginBottom: 16 }} />
+          <h1 style={{ 
+            fontSize: 48, 
+            fontWeight: 'bold', 
+            margin: 0,
+            color: 'white',
+            textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
+          }}>
+            Healthcare Clock App
+          </h1>
+          <p style={{ 
+            fontSize: 18, 
+            margin: 0, 
+            opacity: 0.9,
+            textShadow: '1px 1px 2px rgba(0,0,0,0.3)'
+          }}>
+            Professional time tracking for healthcare workers
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+
+        {appState === 'role-selection' && (
+          <div style={{ width: '100%', maxWidth: 500 }}>
+            <LoginSelector onRoleSelect={handleRoleSelect} />
+            
+            {/* Demo Login Buttons */}
+            <div style={{ 
+              marginTop: 20, 
+              textAlign: 'center',
+              padding: 16,
+              background: 'rgba(255,255,255,0.1)',
+              borderRadius: 8,
+              backdropFilter: 'blur(10px)'
+            }}>
+              <p style={{ color: 'white', margin: '0 0 12px 0', fontSize: 14 }}>
+                Demo Mode (Skip Auth0):
+              </p>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                <button
+                  onClick={() => handleMockLogin('CARE_WORKER')}
+                  style={{
+                    padding: '8px 16px',
+                    background: 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: 4,
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: 12
+                  }}
+                >
+                  Demo as Care Worker
+                </button>
+                <button
+                  onClick={() => handleMockLogin('MANAGER')}
+                  style={{
+                    padding: '8px 16px',
+                    background: 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: 4,
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: 12
+                  }}
+                >
+                  Demo as Manager
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {appState === 'auth-login' && selectedRole && (
+          <AuthLogin 
+            role={selectedRole} 
+            onBack={handleBackToRoleSelection}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+        )}
+      </Content>
+    </Layout>
+  )
 }

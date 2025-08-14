@@ -400,7 +400,7 @@ export const resolvers = {
         where: { auth0Id: user.sub }
       })
 
-      if (!currentUser || currentUser.role !== 'MANAGER' && currentUser.role !== 'ADMIN') {
+      if (!currentUser || (currentUser.role !== 'MANAGER' && currentUser.role !== 'ADMIN')) {
         throw new GraphQLError('Insufficient permissions')
       }
 

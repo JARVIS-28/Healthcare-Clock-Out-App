@@ -140,15 +140,18 @@ interface AuthLoginProps {
 
 export function AuthLogin({ role, onBack }: AuthLoginProps) {
   const handleAuth0Login = (provider?: string) => {
-    // Store the selected role before redirecting to Auth0
-    localStorage.setItem('pendingUserRole', role)
+    // Create the login URL with role in state
+    const baseUrl = '/api/auth/login'
+    const params = new URLSearchParams()
     
-    // Use the Auth0 API route
-    let loginUrl = '/api/auth/login'
     if (provider === 'google') {
-      loginUrl += '?connection=google-oauth2'
+      params.append('connection', 'google-oauth2')
     }
     
+    // Add role as state parameter
+    params.append('state', JSON.stringify({ role }))
+    
+    const loginUrl = `${baseUrl}?${params.toString()}`
     window.location.href = loginUrl
   }
 

@@ -105,12 +105,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             auth0Id: auth0User.sub,
             email: auth0User.email,
             name: auth0User.name,
-            role: localStorage.getItem('pendingUserRole') as 'CARE_WORKER' | 'MANAGER' || 'CARE_WORKER',
+            role: auth0User.role || 'CARE_WORKER', // Role comes from cookie now
             isActive: true
           }
           dispatch({ type: 'SET_USER', payload: user })
-          // Clear the pending role
-          localStorage.removeItem('pendingUserRole')
         }
       }
     } catch (error) {

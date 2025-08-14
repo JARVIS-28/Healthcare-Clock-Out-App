@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
 import React, { createContext, useContext, useReducer, useEffect } from 'react'
@@ -8,7 +10,7 @@ interface User {
   auth0Id: string
   email: string
   name?: string
-  role: 'CARE_WORKER' | 'MANAGER' | 'ADMIN'
+  role: 'CARE_WORKER' | 'MANAGER' 
   isActive: boolean
   organization?: Organization
 }

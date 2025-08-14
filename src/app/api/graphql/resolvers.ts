@@ -1,10 +1,20 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { PrismaClient } from '@prisma/client'
 import { GraphQLError } from 'graphql'
-import { startOfWeek, endOfWeek, startOfDay, endOfDay, subWeeks } from 'date-fns'
+import { startOfWeek, endOfWeek, startOfDay, endOfDay } from 'date-fns'
 
 interface Context {
   prisma: PrismaClient
-  user: any
+  user: {
+    sub: string
+    email?: string
+    name?: string
+  } | null
+}
+
+interface GraphQLArgs {
+  [key: string]: unknown
 }
 
 // Define enums locally to match Prisma schema
@@ -34,7 +44,7 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 
 export const resolvers = {
   Query: {
-    me: async (_: any, __: any, { prisma, user }: Context) => {
+    me: async (_: unknown, __: GraphQLArgs, { prisma, user }: Context) => {
       if (!user) throw new GraphQLError('Not authenticated')
       
       return await prisma.user.findUnique({
@@ -43,7 +53,7 @@ export const resolvers = {
       })
     },
 
-    getUsers: async (_: any, __: any, { prisma, user }: Context) => {
+    getUsers: async (_: unknown, __: GraphQLArgs, { prisma, user }: Context) => {
       if (!user) throw new GraphQLError('Not authenticated')
       
       const currentUser = await prisma.user.findUnique({

@@ -140,27 +140,16 @@ interface AuthLoginProps {
 
 export function AuthLogin({ role, onBack }: AuthLoginProps) {
   const handleAuth0Login = (provider?: string) => {
-    // Construct Auth0 login URL with role metadata
-    const auth0Domain = process.env.NEXT_PUBLIC_AUTH0_DOMAIN || 'dev-zdhknxi00po7vryi.us.auth0.com'
-    const clientId = process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID || 'g89SPTPrIPJ8PJhxMZrLcq4cxKY9VOGV'
-    const redirectUri = encodeURIComponent(window.location.origin + '/api/auth/callback')
+    // Store the selected role before redirecting to Auth0
+    localStorage.setItem('pendingUserRole', role)
     
-    let connection = ''
+    // Use the Auth0 API route
+    let loginUrl = '/api/auth/login'
     if (provider === 'google') {
-      connection = '&connection=google-oauth2'
+      loginUrl += '?connection=google-oauth2'
     }
     
-    // Add role as state parameter
-    const state = encodeURIComponent(JSON.stringify({ role }))
-    
-    const authUrl = `https://${auth0Domain}/authorize?` +
-      `response_type=code&` +
-      `client_id=${clientId}&` +
-      `redirect_uri=${redirectUri}&` +
-      `scope=openid profile email&` +
-      `state=${state}${connection}`
-    
-    window.location.href = authUrl
+    window.location.href = loginUrl
   }
 
   const getRoleIcon = () => {

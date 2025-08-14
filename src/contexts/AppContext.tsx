@@ -3,7 +3,7 @@
 'use client'
 
 import React, { createContext, useContext, useReducer, useEffect } from 'react'
-// import { useUser } from '@auth0/nextjs-auth0/client' // Commented out for demo mode
+// import { useUser } from '@auth0/nextjs-auth0/client' // Commented for now
 
 interface User {
   id: string
@@ -91,7 +91,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined)
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState)
-  // const { user: auth0User } = useUser() // Commented out for demo mode
+  // const { user: auth0User } = useUser() // Using JS route for Auth0 instead
 
   // Function to get current location
   const getCurrentLocation = async () => {

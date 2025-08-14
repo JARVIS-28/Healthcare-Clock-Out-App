@@ -7,6 +7,8 @@ export const GET = handleAuth({
       const connection = url.searchParams.get('connection')
       const state = url.searchParams.get('state')
       
+      console.log('Login params:', { connection, state })
+      
       const params = {}
       if (connection) params.connection = connection
       if (state) params.state = state
@@ -16,26 +18,51 @@ export const GET = handleAuth({
   }),
   callback: handleCallback({
     afterCallback: async (req, res, session) => {
-      // Try to get role from state parameter in the callback URL
+      console.log('Callback received, session:', session)
+      
+      // The state parameter should be available in the request
       const url = new URL(req.url)
       const state = url.searchParams.get('state')
       
+      console.log('State parameter:', state)
+      
       if (state) {
         try {
-          const stateData = JSON.parse(decodeURIComponent(state))
+          // Decode the state parameter
+          const decodedState = decodeURIComponent(state)
+          console.log('Decoded state:', decodedState)
+          
+          const stateData = JSON.parse(decodedState)
+          console.log('Parsed state data:', stateData)
+          
           if (stateData.role) {
             // Add role to the user session
-            session.user = {
-              ...session.user,
-              role: stateData.role
+            const updatedSession = {
+              ...session,
+              user: {
+                ...session.user,
+                role: stateData.role
+              }
             }
+            console.log('Updated session with role:', updatedSession.user.role)
+            return updatedSession
           }
         } catch (e) {
           console.error('Failed to parse state in callback:', e)
         }
       }
       
-      return session
+      // Default role if no state or parsing failed
+      const defaultSession = {
+        ...session,
+        user: {
+          ...session.user,
+          role: 'CARE_WORKER'
+        }
+      }
+      
+      console.log('Returning session:', defaultSession)
+      return defaultSession
     }
   })
 })

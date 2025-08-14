@@ -97,14 +97,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Effect to sync Auth0 user with app state
   useEffect(() => {
     if (!isLoading && auth0User) {
+      // Get role from Auth0 user or fallback to localStorage
+      let userRole = (auth0User.role as 'CARE_WORKER' | 'MANAGER') || 'CARE_WORKER'
+      
+      // Fallback to localStorage if no role in session
+      if (!auth0User.role) {
+        const pendingRole = localStorage.getItem('pendingUserRole') as 'CARE_WORKER' | 'MANAGER'
+        if (pendingRole) {
+          userRole = pendingRole
+          localStorage.removeItem('pendingUserRole') // Clean up
+        }
+      }
+      
       const user: User = {
         id: auth0User.sub || '',
         auth0Id: auth0User.sub || '',
         email: auth0User.email || '',
         name: auth0User.name || undefined,
-        role: (auth0User.role as 'CARE_WORKER' | 'MANAGER') || 'CARE_WORKER',
+        role: userRole,
         isActive: true
       }
+      
+      console.log('Setting user in AppContext:', user)
       dispatch({ type: 'SET_USER', payload: user })
     } else if (!isLoading && !auth0User) {
       dispatch({ type: 'SET_USER', payload: null })

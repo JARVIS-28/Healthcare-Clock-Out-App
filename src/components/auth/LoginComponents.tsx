@@ -140,6 +140,9 @@ interface AuthLoginProps {
 
 export function AuthLogin({ role, onBack }: AuthLoginProps) {
   const handleAuth0Login = (provider?: string) => {
+    // Store role in localStorage as backup
+    localStorage.setItem('pendingUserRole', role)
+    
     // Create the login URL with role in state and connection
     let loginUrl = '/api/auth/login'
     const params = new URLSearchParams()
@@ -148,13 +151,15 @@ export function AuthLogin({ role, onBack }: AuthLoginProps) {
       params.append('connection', 'google-oauth2')
     }
     
-    // Add role as state parameter
-    params.append('state', JSON.stringify({ role }))
+    // Add role as state parameter - simple string encoding
+    const stateData = JSON.stringify({ role })
+    params.append('state', stateData)
     
     if (params.toString()) {
       loginUrl += '?' + params.toString()
     }
     
+    console.log('Redirecting to:', loginUrl)
     window.location.href = loginUrl
   }
 
